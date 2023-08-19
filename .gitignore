@@ -1,3 +1,4 @@
 doc/*
 _build/
 *.opam
+lib/ast.ml

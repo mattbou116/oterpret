@@ -68,26 +68,16 @@ module Token = struct
     | RETURN -> "return"
   ;;
 
-  module KeywordMap = Map.Make(String) 
-
-  let keywords = 
-    let open KeywordMap in
-    empty 
-    |> add "fn" FUNCTION
-    |> add "let" LET
-    |> add "if" IF
-    |> add "true" TRUE
-    |> add "false" FALSE
-    |> add "if" IF
-    |> add "else" ELSE
-    |> add "return" RETURN
-  ;;
-
   let lookup_ident (ident : string) : t = 
-    let open KeywordMap in
-    match (find_opt ident keywords) with
-      | None -> IDENT ident
-      | Some k -> k
+    match ident with
+      | "fn" -> FUNCTION
+      | "let" -> LET
+      | "if" -> IF
+      | "else" -> ELSE
+      | "true" -> TRUE
+      | "false" -> FALSE
+      | "return" -> RETURN
+      | _ -> IDENT (ident)
   ;;
 end
 
