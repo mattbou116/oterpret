@@ -6,7 +6,7 @@ module Repl = struct
     let open Token in
     Printf.printf "%s" prompt;
     let user_input = Stdlib.read_line () in
-    let rec aux (l : Lexer.t) =
+    let rec aux (l : Lexer.lexer) =
       let lexer, token = Lexer.next_token l in
       match token with
       | EOF -> ()

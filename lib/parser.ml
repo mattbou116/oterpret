@@ -8,185 +8,225 @@ open Ast
     - parse block statements
     - parse operator precedence *)
 
-module Parser = struct
-  type t =
-    { lexer : Lexer.t
-    ; cur_token : Token.t
-    ; peek_token : Token.t
-    }
+type parser =
+  { lexer : lexer
+  ; cur_token : token
+  ; peek_token : token
+  }
 
-  type op_precedence =
-    | LOWEST
-    | EQUALS (* == *)
-    | LESSGREATER (* > or < *)
-    | SUM (* + *)
-    | PRODUCT (* * *)
-    | PREFIX (* -X or !X *)
-    | CALL (* foo(X) *)
+let init (lexer : lexer) : parser =
+  let lexer, cur_token = Lexer.next_token lexer in
+  let lexer, peek_token = Lexer.next_token lexer in
+  { lexer; cur_token; peek_token }
+;;
 
-  let precedence (op : op_precedence) : int =
-    match op with
-    | LOWEST -> 0
-    | EQUALS -> 1
-    | LESSGREATER -> 2
-    | SUM -> 3
-    | PRODUCT -> 4
-    | PREFIX -> 5
-    | CALL -> 6
-  ;;
+let next_token (parser : parser) : parser =
+  let cur_token = parser.peek_token in
+  let lexer, peek_token = Lexer.next_token parser.lexer in
+  { lexer; cur_token; peek_token }
+;;
 
-  let token_to_precedence (t : Token.t) =
-    match t with
-    | EQ -> EQUALS
-    | NOT_EQ -> EQUALS
-    | PLUS -> SUM
-    | MINUS -> SUM
-    | SLASH -> PRODUCT
-    | ASTERISK -> PRODUCT
-    | LPAREN -> CALL
-    | _ -> LOWEST
-  ;;
+(* parser -> token -> (parser, parser) result *)
+let expect_cur (p : parser) (t : token) =
+  (* Printf.printf "ENTERED EXPECT CUR\n"; *)
+  if p.cur_token = t then Ok p else Error (next_token p)
+;;
 
-  let init (lexer : Lexer.t) : t =
-    let lexer, cur_token = Lexer.next_token lexer in
-    let lexer, peek_token = Lexer.next_token lexer in
-    { lexer; cur_token; peek_token }
-  ;;
+(* parser -> int -> parser * expression *)
+let parse_integer_literal (p : parser) (i : int) =
+  (* Printf.printf "ENTERED PARSE INTEGER LITERAL\n"; *)
+  next_token p, IntegerLiteral { value = i }
+;;
 
-  let next_token (parser : t) : t =
-    let cur_token = parser.peek_token in
-    let lexer, peek_token = Lexer.next_token parser.lexer in
-    { lexer; cur_token; peek_token }
-  ;;
+(* parser -> bool -> parser * expression *)
+let parse_boolean_literal (p : parser) (b : bool) =
+  (* Printf.printf "ENTERED PARSE BOOLEAN LITERAL\n"; *)
+  next_token p, BooleanLiteral { value = b }
+;;
 
-  let expect_peek (parser : t) (expected : Token.t) : bool =
-    match parser.cur_token, expected with
-    | IDENT _, IDENT _ -> true
-    | INT _, INT _ -> true
-    | cur_token, expected -> cur_token = expected
-  ;;
+(* parser -> string -> parser * identifier *)
+let parse_identifier (p : parser) (ident : string) =
+  (* Printf.printf "ENTERED PARSE IDENTIFIER\n"; *)
+  next_token p, { ident }
+;;
 
-  (* assume current token is integer literal, call next_token *)
-  let parse_integer_literal (i : int) (parser : t) : t * Ast.expression =
-    next_token parser, IntegerLiteral { value = i }
-  ;;
+(* parser -> (parser * token, parser) result *)
+let parse_prefix_operator (p : parser) =
+  (* Printf.printf "ENTERED PARSE PREFIX OP\n"; *)
+  match p.cur_token with
+  | BANG -> Ok (next_token p, BANG)
+  | MINUS -> Ok (next_token p, MINUS)
+  | _ -> Error (next_token p)
+;;
 
-  (* assume current token is boolean literal, call next_token *)
-  let parse_boolean_literal (b : bool) (parser : t) : t * Ast.expression =
-    next_token parser, BooleanLiteral { value = b }
-  ;;
+(* parser -> (parser * token, parser) result *)
+let parse_infix_operator (p : parser) =
+  (* Printf.printf "ENTERED PARSE INFIX OP\n"; *)
+  match p.cur_token with
+  | PLUS -> Ok (next_token p, PLUS)
+  | MINUS -> Ok (next_token p, MINUS)
+  | ASTERISK -> Ok (next_token p, ASTERISK)
+  | SLASH -> Ok (next_token p, SLASH)
+  | EQ -> Ok (next_token p, EQ)
+  | NOT_EQ -> Ok (next_token p, NOT_EQ)
+  | LT -> Ok (next_token p, LT)
+  | GT -> Ok (next_token p, GT)
+  | _ -> Error (next_token p)
+;;
 
-  (* assume current token is string literal, call next_token *)
-  let parse_string_literal (s : string) (parser : t) : t * Ast.expression =
-    next_token parser, StringLiteral { value = s }
-  ;;
+(* parser -> (parser * expression, parser) result *)
+let rec parse_literals (p : parser) = 
+  (* Printf.printf "ENTERED PARSE LITERALS\n"; *)
+  match p.cur_token with
+  | IDENT i -> let (p, ident) = parse_identifier p i in
+    Ok (p, Identifier ident)
+  | INT i -> Ok (parse_integer_literal p @@ int_of_string i)
+  | TRUE -> Ok (parse_boolean_literal p true) 
+  | FALSE -> Ok (parse_boolean_literal p false) 
+  | FUNCTION -> parse_function_literal p
+  | IF -> parse_if_expr p
+  | LPAREN -> parse_grouped_expression p
+  | _ -> Error (next_token p)
 
-  (* check if current token is identifier, call next_token regardless *)
-  let parse_identifier (parser : t) : (t * Ast.identifier, t) result =
+(* parser -> token -> (parser * expression, parser) result *)
+and parse_prefix (p : parser) (operator : token) =
+  (* Printf.printf "ENTERED PARSE PREFIX\n"; *)
+  Result.bind (parse_expression p) 
+  @@ fun (p, right) -> Ok (p, Prefix { operator; right })
+
+(* parser -> expression -> (parser * expression, parser) result *)
+and parse_infix (p : parser) (left : expression) =
+  (* Printf.printf "ENTERED PARSE INFIX\n"; *)
+  Result.bind (parse_infix_operator p)
+  @@ fun (p, operator) ->
+    Result.bind (parse_expression p) 
+    @@ fun (p, right) -> Ok (p, Infix { left; operator; right })
+
+(* MAKE NOTE OF SEMICOLN AFTER PREFIX/INFIX *)
+(* WHERE ARE WE PARSING LITERALS *)
+
+      (*
+    Result.bind (parse_literals p)
+    @@ fun (p, left) -> 
+      Result.bind (parse_infix_operator p)
+      @@ fun (p, operator) ->
+        Result.bind (parse_literals p)
+        @@ fun (p, right) -> Ok (p, Infix { left; operator; right })
+        *)
+
+(* parser -> (parser * expression, parser) result *)
+and parse_expression (p : parser) =
+  (* Printf.printf "ENTERED PARSE EXPRESSION\n"; *)
+  begin match (parse_prefix_operator p) with
+  | Ok (p, operator) -> parse_prefix p operator
+  | Error _ -> 
+    Result.bind (parse_literals p)
+    @@ fun (p, left) -> begin match parse_infix_operator p with
+      | Ok (p, operator) -> 
+          Result.bind (parse_literals p)
+          @@ fun (p, right) -> Ok (p, Infix { left; operator; right })
+      | _ -> Ok (p, left)
+      end
+  end
+
+(* parser -> (parser * statement, parser) result *)
+and parse_let_statement (p : parser) =
+  (* Printf.printf "ENTERED PARSE LET STATEMENT\n"; *)
+  match p.cur_token with
+  | IDENT i -> let p, ident = parse_identifier p i in
+    Result.bind (expect_cur p ASSIGN)
+    @@ fun p -> 
+      Result.bind (parse_expression @@ next_token p)
+      @@ fun (p, expr) -> Ok (p, Let { name = ident; value = expr })
+  | _ -> Error (next_token p)
+
+(* parser -> (parser * statement, parser) result *)
+and parse_return_statement (p : parser) =
+  (* Printf.printf "ENTERED PARSE RETURN STATEMENT\n"; *)
+  Result.bind (parse_expression p) 
+  @@ fun (p, expr) -> Ok (p, Return expr)
+
+(* parser -> (parser * statement, parser) result *)
+and parse_expression_statement (p : parser) = 
+  (* Printf.printf "ENTERED PARSE EXPRESSION STATEMENT\n"; *)
+  Result.bind (parse_expression p) 
+  @@ fun (p, expr) -> Ok (p, ExpressionStatement expr)
+
+(* parser -> (parser * statement, parser) result *)
+and parse_statement (parser : parser) =
+  (* Printf.printf "ENTERED PARSE STATEMENT\n"; *)
+  match parser.cur_token with
+  | LET -> parse_let_statement (next_token parser)
+  | RETURN -> parse_return_statement (next_token parser)
+  | SEMICOLON -> parse_statement (next_token parser)
+  | _ -> parse_expression_statement parser
+
+(* parser -> (parser * statement, parser) result *)
+and parse_block_statement (p : parser) = 
+  (* Printf.printf "ENTERED PARSE BLOCK STATEMENT\n"; *)
+  let rec aux (p : parser) (acc : statement list) =
+    match p.cur_token with
+    | LBRACE -> aux (next_token p) acc
+    | RBRACE -> Ok (p, acc)
+    | EOF -> Error p
+    | _ -> Result.bind (parse_statement p)
+      @@ fun (p, stmt) -> aux p (stmt::acc)
+  in
+  Result.bind (aux p []) 
+  @@ fun (p, stmts) -> Ok (p, Block (List.rev stmts))
+
+(* parser -> (parser * identifier list, parser) result *)
+and parse_function_args (p : parser) =
+  (* Printf.printf "ENTERED PARSE FUNCTION ARGS\n"; *)
+  let rec aux (p : parser) (acc : identifier list) = 
+    match p.cur_token with
+    | LPAREN -> aux (next_token p) acc
+    | RPAREN -> Ok (p, acc)
+    | COMMA -> aux (next_token p) acc
+    | IDENT i -> let (p, ident) = parse_identifier p i in
+      aux p (ident::acc)
+    | _ -> Error (next_token p)
+  in
+  Result.bind (aux p []) 
+  @@ fun (p, idents) -> Ok (p, List.rev idents)
+
+(* parser -> (parser * expression, parser) result *)
+and parse_function_literal (p : parser) =
+  (* Printf.printf "ENTERED PARSE FUNCTION LITERAL\n"; *)
+  Result.bind (parse_function_args p) 
+  @@ fun (p, parameters) -> 
+    Result.bind (parse_block_statement p) 
+    @@ fun (p, body) -> Ok (p, FunctionLiteral { parameters; body })
+
+(* parser -> (parser * expression, parser) result *)  
+and parse_grouped_expression (p : parser) =
+  (* Printf.printf "ENTERED PARSE GROUP EXPRESSION\n"; *)
+  Result.bind (parse_expression p)
+  @@ fun (p, expr) -> Result.bind (expect_cur p RPAREN)
+    @@ fun (p) -> Ok (next_token p, expr)
+
+(* parser -> (parser * expression, parser) result *)
+and parse_if_expr (p : parser) = 
+  (* Printf.printf "ENTERED PARSE IF\n"; *)
+  Result.bind (parse_grouped_expression p)
+  @@ fun (p, condition) ->
+    Result.bind (parse_statement p) 
+    @@ fun (p, consequence) ->
+      Result.bind (parse_statement p) 
+      @@ fun (p, alternative) ->
+        Ok (p, If { condition; consequence; alternative })
+;;
+
+let parse (parser : parser) : ast =
+  (* Printf.printf "ENTERED PARSE\n"; *)
+  let rec aux (parser : parser) (ast : Ast.ast) : Ast.ast =
     match parser.cur_token with
-    | IDENT ident -> Ok (next_token parser, { ident })
-    | _ -> Error (next_token parser)
-  ;;
-
-  let prefix_with_token (t : Token.t) : (t -> t * Ast.expression) option =
-    match t with
-    | INT i -> Some (parse_integer_literal @@ int_of_string i)
-    | TRUE -> Some (parse_boolean_literal true)
-    | FALSE -> Some (parse_boolean_literal false)
-    | IDENT ident -> Some (parse_string_literal ident)
-    | _ -> None
-  ;;
-
-  let rec parse_expression (parser : t) : (t * Ast.expression, t) result =
-    (* parse expression as prefix *)
-    (* if next token is semicoln, return expression *)
-    (* if next token isn't, parse epxression as infix with prefix being left *)
-    (*
-    match parse_prefix_exp parser with
-    | Ok v -> Ok v
-    | Error p ->
-      (match parse_infix_exp p with
-       | Ok p -> Ok p
-       | Error _ -> Error (next_token parser))
-      *)
-
-  and parse_prefix_exp (parser : t) : (t * Ast.expression, t) result =
-    let operator = parser.cur_token in
-    let exprfn = token_to_exprfn @@ (next_token parser).cur_token in
-    match exprfn with
-    | None -> Error (next_token parser)
-    | Some exprfn ->
-      let parser, right = exprfn parser in
-      Ok (next_token parser, Ast.Prefix { operator; right })
-
-  and parse_infix_exp (parser : t) : (t * Ast.expression, t) result =
-    let exprfn = token_to_exprfn @@ (next_token parser).cur_token in
-    match exprfn with
-    | None -> Error (next_token parser)
-    | Some exprfn ->
-      let parser, left = exprfn parser in
-      let operator = parser.cur_token in
-      let exprfn = token_to_exprfn @@ (next_token parser).cur_token in
-      (match exprfn with
-       | None -> Error (next_token parser)
-       | Some exprfn ->
-         let parser, right = exprfn parser in
-         Ok (next_token parser, Ast.Infix { left; operator; right }))
-  ;;
-
-  (*
-     Result.bind (parse_expression @@ next_token parser)
-    @@ fun (parser, left) ->
-    let operator = parser.cur_token in
-    Result.bind (parse_expression @@ next_token parser) 
-    @@ fun (parser, right) ->
-      match parser.cur_token with
-      | SEMICOLON -> Ok (next_token parser, Ast.Infix { left; operator; right })
-      | _ -> Ok (next_token parser, Ast.Infix { left; operator; right })
-  *)
-
-  let parse_let_statement (parser : t) : (t * Ast.statement, t) result =
-    Result.bind (parse_identifier parser) (fun (parser, ident) ->
-      match parser.cur_token with
-      | ASSIGN ->
-        Result.bind
-          (parse_expression @@ next_token parser)
-          (fun (parser, expr) ->
-            Ok (parser, Ast.Let { name = ident; value = expr }))
-      | _ -> Error (next_token parser))
-  ;;
-
-  let parse_return_statement (parser : t) : (t * Ast.statement, t) result =
-    match parse_expression parser with
-    | Ok (parser, expr) -> Ok (parser, Ast.Return expr)
-    | Error parser -> Error parser
-  ;;
-
-  let parse_expression_statement (parser : t) : (t * Ast.statement, t) result =
-    match parse_expression parser with
-    | Ok (parser, expr) -> Ok (parser, Ast.ExpressionStatement expr)
-    | Error parser -> Error parser
-  ;;
-
-  let rec parse_statement (parser : t) : (t * Ast.statement, t) result =
-    match parser.cur_token with
-    | LET -> parse_let_statement (next_token parser)
-    | RETURN -> parse_return_statement (next_token parser)
-    | SEMICOLON -> parse_statement (next_token parser)
-    | _ -> parse_expression_statement parser
-  ;;
-
-  let parse (parser : t) : Ast.t =
-    let rec aux (parser : t) (ast : Ast.t) : Ast.t =
-      match parser.cur_token with
-      | EOF -> ast
-      | _ ->
-        (match parse_statement parser with
-         | Ok (parser, stmt) ->
-           aux parser { statements = stmt :: ast.statements }
-         | Error parser -> aux parser ast)
-    in
-    let ast = aux parser { statements = [] } in
-    { statements = List.rev ast.statements }
-  ;;
-end
+    | EOF -> ast
+    | _ ->
+      (match parse_statement parser with
+       | Ok (parser, stmt) -> aux parser { statements = stmt :: ast.statements }
+       | Error parser -> aux parser ast)
+  in
+  let ast = aux parser { statements = [] } in
+  { statements = List.rev ast.statements }
+;;

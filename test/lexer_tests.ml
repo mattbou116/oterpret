@@ -2,25 +2,25 @@ open OUnit2
 open Oterpret.Token
 open Oterpret.Lexer
 
-let collect_tokens (lexer : Lexer.t) : Token.t list =
-  let rec aux (lexer : Lexer.t) (acc : Token.t list) =
-    let lexer, token = Lexer.next_token lexer in
-    match token with
+let collect_tokens (l : lexer) : token list =
+  let rec aux (l : lexer) (acc : token list) =
+    let l, t = next_token l in
+    match t with
     | EOF -> acc
-    | _ -> aux lexer (token :: acc)
+    | _ -> aux l (t :: acc)
   in
-  List.rev (aux lexer [])
+  List.rev (aux l [])
 ;;
 
-let rec print_tokens (tl : Token.t list) =
+let rec print_tokens (tl : token list) =
   match tl with
   | [] -> ()
   | t :: tl ->
-    Printf.printf "token:%s\n" (Token.string_of_token t);
+    Printf.printf "token:%s\n" (string_of_token t);
     print_tokens tl
 ;;
 
-let compare_tokens (expected : Token.t list) (got : Token.t list) : int =
+let compare_tokens (expected : token list) (got : token list) : int =
   let comparison t1 t2 =
     if t1 = t2 then 0 else assert_failure "unequal tokens"
   in
@@ -29,13 +29,13 @@ let compare_tokens (expected : Token.t list) (got : Token.t list) : int =
 
 let test_next_token_small _ =
   let input = "=+(){},;" in
-  let expected : Token.t list =
+  let expected : token list =
     [ ASSIGN; PLUS; LPAREN; RPAREN; LBRACE; RBRACE; COMMA; SEMICOLON; EOF ]
   in
-  let lexer = Lexer.init input in
+  let lexer = init input in
   let got = collect_tokens lexer in
   (*
-     Printf.printf "Token test 0 result\n";
+     Printf.printf "tokenest 0 result\n";
      List.iter (fun t -> Printf.printf "token:%s\n" (Token.string_of_token t)) got;
   *)
   let _ = compare_tokens expected got in
@@ -44,13 +44,13 @@ let test_next_token_small _ =
 
 let test_next_token_spaces _ =
   let input = "  =+(){},;\n" in
-  let expected : Token.t list =
+  let expected : token list =
     [ ASSIGN; PLUS; LPAREN; RPAREN; LBRACE; RBRACE; COMMA; SEMICOLON; EOF ]
   in
-  let lexer = Lexer.init input in
+  let lexer = init input in
   let got = collect_tokens lexer in
   (*
-     Printf.printf "Token test 1 result\n";
+     Printf.printf "tokenest 1 result\n";
      List.iter (fun t -> Printf.printf "token:%s\n" (Token.string_of_token t)) got;
   *)
   let _ = compare_tokens expected got in
@@ -77,7 +77,7 @@ let test_next_token_big _ =
     \    10 != 9;\n\
     \  "
   in
-  let expected : Token.t list =
+  let expected : token list =
     [ LET
     ; IDENT "five"
     ; ASSIGN
@@ -154,10 +154,10 @@ let test_next_token_big _ =
     ; EOF
     ]
   in
-  let lexer = Lexer.init input in
+  let lexer = init input in
   let got = collect_tokens lexer in
   (*
-     Printf.printf "Token test 3 result\n";
+     Printf.printf "tokenest 3 result\n";
      List.iter (fun t -> Printf.printf "token:%s\n" (Token.string_of_token t)) got;
   *)
   let _ = compare_tokens expected got in
