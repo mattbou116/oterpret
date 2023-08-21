@@ -33,7 +33,6 @@ module Ast = struct
         }
     | Prefix of
         { operator : Token.t
-        ; left : expression
         ; right : expression
         }
     | Infix of

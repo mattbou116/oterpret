@@ -1,5 +1,66 @@
-let x = 5;
+let parse_identifier (parser : t) (ident : string) : t * Ast.expression =
+    (next_token parser, { ident })
+;;
 
-AST =
-    {
+let parse_body_expr (parser : t) : t * Ast.expression =
+    let body = parse_statement parser.cur_token in
+;;
+
+
+let parse_function_literal (parser : t) : t * Ast.expression =
+    let rec aux (parser : t) (args : Ast.identifier list) (body : Ast.expression) = 
+        match parser.cur_token with
+        | LPAREN -> aux @@ next_token parser
+        | RPAREN -> aux @@ next_token parser
+        | LBRACE -> parse_body_expr parser
+;;
+
+let prefix_result (p : parser) = match p.cur_token with
+    | BANG -> Ok (parse_prefix_expression parser)
+    | MINUS -> Ok (parse_prefix_expression parser)
+    | IDENT i -> Ok (parse_identifier parser)
+    | INT i -> Ok (parse_integer_literal parser (int_of_string i))
+    | TRUE -> Ok (parse_boolean_literal parser true)
+    | FALSE -> Ok (parse_boolean_literal parser false)
+    | LPAREN -> parse_grouped_expression @@ next_token parser
+    | IF -> parse_if_expression @@ next_token parser
+    | FUNCTION -> parse_function_literal @@ next_token parser
+    | _ -> Error (p)
+;;
+
+let check_infix (p : parser) = match p.cur_token with
+    | PLUS -> Ok (parse_infix_expression)
+;;
+
+let parse_expression (p : parser) : (t * Ast.Expression, t) result =
+    let prefix = prefix_result p in
+    match prefix with
+    | Error p -> Error p
+    | Ok (parser, expr) -> if parser.peek_token != Token.SEMICOLON then
+        let infix = infix_result parser in
+;;
+
+
+	p.registerPrefix(token.IDENT, p.parseIdentifier)
+	p.registerPrefix(token.INT, p.parseIntegerLiteral)
+	p.registerPrefix(token.BANG, p.parsePrefixExpression)
+	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
+	p.registerPrefix(token.TRUE, p.parseBoolean)
+	p.registerPrefix(token.FALSE, p.parseBoolean)
+	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
+	p.registerPrefix(token.IF, p.parseIfExpression)
+	p.registerPrefix(token.FUNCTION, p.parseFunctionLiteral)
+
+	p.registerInfix(token.PLUS, p.parseInfixExpression)
+	p.registerInfix(token.MINUS, p.parseInfixExpression)
+	p.registerInfix(token.SLASH, p.parseInfixExpression)
+	p.registerInfix(token.ASTERISK, p.parseInfixExpression)
+	p.registerInfix(token.EQ, p.parseInfixExpression)
+	p.registerInfix(token.NOT_EQ, p.parseInfixExpression)
+	p.registerInfix(token.LT, p.parseInfixExpression)
+	p.registerInfix(token.GT, p.parseInfixExpression)
+
+	p.registerInfix(token.LPAREN, p.parseCallExpression)
+
+	// Read two tokens, so curToken and peekToken are both set
 
