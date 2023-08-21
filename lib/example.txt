@@ -1,0 +1,80 @@
+(* Example 1 : let x = 5; *)
+
+Ast.t = { statements: [
+  Let of {
+    name: { value: "x" };
+    value: { expression:
+      IntegerLiteral of { value: 5 }
+      }
+    };
+  ]
+}
+
+(** Example 2 :
+
+    if (3 * 5 > 10) { 
+        return "hello"; 
+    } else { 
+      return "goodbye"; 
+    }
+*)
+            
+Ast.t = { statements: [
+    If of {
+      condition: 
+        Infix of {
+          left: Infix of { 
+            left: IntegerLiteral of { value: 3 }
+            operator: { TIMES }
+            right: { IntegerLiteral of { value: 5 }}
+            }
+          operator: { GT }
+          right: { IntegerLiteral of { value 10 }}
+        }
+      consequence: 
+        Block of [
+          Return of { StringLiteral of { value: "hello" }};
+        ]
+      alternative:
+        Block of [
+          Return of { StringLiteral of { value: "goodbye" }};
+        ]
+      }
+  ]
+}
+
+(** Example 3 :
+  let x = true;
+
+  if (x) {
+    return fn () { return true };
+  } else {
+    return fn () { return false };
+  }
+
+*)
+
+Ast.t = { statements [
+    Let of {
+      name: "x"
+      ; value: BooleanLiteral of { value: true }
+      }
+    ; If of {
+      condition: Identifier of { value: "x" }
+      ; consequeunce: FunctionLiteral of {
+          parameters: []
+          ; body of { [
+            Return of { BooleanLiteral of { value: true } }
+            ]
+          }
+        }
+      ; alternative: FunctionLiteral of {
+          parameters: []
+          ; body of { [
+            Return of { BooleanLiteral of { value: false } }
+            ]
+          }
+        }
+      }
+  ]
+}

@@ -6,12 +6,12 @@ module Token = struct
     | IDENT of string
     | INT of string
     (* operators *)
-    | ASSIGN 
+    | ASSIGN
     | PLUS
-    | MINUS 
-    | BANG 
-    | ASTERISK 
-    | SLASH 
+    | MINUS
+    | BANG
+    | ASTERISK
+    | SLASH
     | LT
     | GT
     | EQ
@@ -31,7 +31,7 @@ module Token = struct
     | IF
     | ELSE
     | RETURN
-  ;;
+  [@@deriving show];;
 
   let string_of_token = function
     | ILLEGAL -> "ILLEGAL"
@@ -68,16 +68,15 @@ module Token = struct
     | RETURN -> "return"
   ;;
 
-  let lookup_ident (ident : string) : t = 
+  let lookup_ident (ident : string) : t =
     match ident with
-      | "fn" -> FUNCTION
-      | "let" -> LET
-      | "if" -> IF
-      | "else" -> ELSE
-      | "true" -> TRUE
-      | "false" -> FALSE
-      | "return" -> RETURN
-      | _ -> IDENT (ident)
+    | "fn" -> FUNCTION
+    | "let" -> LET
+    | "if" -> IF
+    | "else" -> ELSE
+    | "true" -> TRUE
+    | "false" -> FALSE
+    | "return" -> RETURN
+    | _ -> IDENT ident
   ;;
 end
-
