@@ -11,6 +11,7 @@ and statement =
   | Return of expression
   | Block of statement list
   | ExpressionStatement of expression
+  | NoStatement
 [@@deriving show]
 
 and identifier = { ident : string }

@@ -114,7 +114,7 @@ and parse_return_statement (p : parser) =
 
 (* parser -> (parser * statement, parser) result *)
 and parse_expression_statement (p : parser) = 
- (*  Printf.printf "ENTERED PARSE EXPRESSION STATEMENT\n"; *)
+  (* Printf.printf "ENTERED PARSE EXPRESSION STATEMENT\n"; *)
   Result.bind (parse_expression LOWEST p) 
   @@ fun (p, expr) -> 
     if (p.cur_token = SEMICOLON) then
@@ -126,18 +126,18 @@ and parse_identifier (ident : string) : identifier = { ident }
 
 (* parser -> int -> parser * expression *)
 and parse_integer_literal (i : int) =
- (*  Printf.printf "ENTERED PARSE INTEGER LITERAL\n"; *)
+  (* Printf.printf "ENTERED PARSE INTEGER LITERAL\n"; *)
   IntegerLiteral { value = i }
 
 (* parser -> (parser * expression, parser) result *)
 and parse_prefix_expression (p : parser) =
- (*  Printf.printf "ENTERED PARSE PREFIX EXPRESSION\n"; *)
+  (* Printf.printf "ENTERED PARSE PREFIX EXPRESSION\n"; *)
   Result.bind (parse_expression PREFIX @@ next_token p) 
   @@ fun (p', right) -> Ok (p', Prefix { operator = p.cur_token; right })
 
 (* parser -> (parser * expression, parser) result *)
 and parse_infix_expression (p : parser) (left : expression) =
- (*  Printf.printf "ENTERED PARSE INFIX EXPRESSION\n"; *)
+  (* Printf.printf "ENTERED PARSE INFIX EXPRESSION\n"; *)
   Result.bind (parse_expression (prec_of_token p.cur_token) @@ next_token p)
   @@ fun (p', right) -> Ok (p', Infix { left; operator = p.cur_token; right })
 
@@ -147,41 +147,48 @@ and parse_boolean_literal (b : bool) =
 
 (* parser -> (parser * expression, parser) result *)  
 and parse_grouped_expression (p : parser) =
- (*  Printf.printf "ENTERED PARSE GROUP EXPRESSION\n"; *)
+  (* Printf.printf "ENTERED PARSE GROUP EXPRESSION\n"; *)
   Result.bind (parse_expression LOWEST @@ next_token p)
   @@ fun (p, expr) -> Result.bind (expect_peek p RPAREN)
     @@ fun p -> Ok (p, expr)
 
 (* parser -> (parser * expression, parser) result *)
 and parse_if_expression (p : parser) = 
+  (* Printf.printf "ENTERED PARSE If EXPRESSION\n"; *)
   Result.bind (expect_peek p LPAREN)
   @@ fun p ->
-    Result.bind (parse_expression LOWEST p)
+    (* Printf.printf "ABOUT TO PARSE CONDITION\n"; *)
+    Result.bind (parse_expression LOWEST @@ next_token p)
     @@ fun (p, condition) ->
+    (* Printf.printf "PARSED CONDITION\n"; *)
       Result.bind (expect_peek p RPAREN)
       @@ fun p ->
+        (* Printf.printf "FOUND RPAREN\n"; *)
         Result.bind (expect_peek p LBRACE)
         @@ fun p ->
+          (* Printf.printf "ABOUT TO PARSE CONSEQUENCE\n"; *)
           Result.bind (parse_block_statement p) 
           @@ fun (p, consequence) ->
-            Result.bind (expect_peek p ELSE)
-            @@ fun p -> 
-              Result.bind (expect_peek p LBRACE)
-              @@ fun p -> 
-                  Result.bind (parse_block_statement p) 
-                  @@ fun (p, alternative) ->
-                    Ok (p, If { condition; consequence; alternative })
+            if (p.peek_token != ELSE) then
+              Ok (p, If { condition; consequence; alternative = NoStatement })
+            else
+                Result.bind (parse_block_statement @@ next_token @@ next_token p) 
+                @@ fun (p, alternative) ->
+                  Ok (p, If { condition; consequence; alternative })
 
 (* parser -> (parser * statement, parser) result *)
 and parse_block_statement (p : parser) = 
+  (* Printf.printf "ENTERED PARSE BLOCK STATEMENT\n"; *)
   let rec aux (p : parser) (acc : statement list) =
     match p.cur_token with
     | LBRACE -> aux (next_token p) acc
     | EOF -> Error p
-    | RBRACE -> Ok (p, acc)
+    | SEMICOLON -> aux (next_token p) acc
+    | RBRACE -> if (List.length acc) = 0 then Ok (p, NoStatement::acc) 
+    else Ok (p, acc)
     | _ -> 
       Result.bind (parse_statement p)
-      @@ fun (p, stmt) -> aux p (stmt::acc)
+      @@ fun (p, stmt) -> aux (next_token p) (stmt::acc)
   in
   Result.bind (aux p []) 
   @@ fun (p, stmts) -> Ok (p, Block (List.rev stmts))
@@ -204,7 +211,7 @@ and parse_function_args (p : parser) =
     | LPAREN -> aux (next_token p) acc
     | RPAREN -> Ok (p, acc)
     | COMMA -> aux (next_token p) acc
-    | IDENT i -> aux p ((parse_identifier i)::acc)
+    | IDENT i -> aux (next_token p) ((parse_identifier i)::acc)
     | _ -> Error (next_token p)
   in
   Result.bind (aux p []) 
@@ -230,7 +237,7 @@ and parse_call_arguments (p : parser) =
 
 (* parser -> (parser * expression, parser) result *)
 and prefix_fn (p : parser) =
- (*  Printf.printf "ENTERED PREFIX FN\n"; *)
+  (* Printf.printf "ENTERED PREFIX FN\n"; *)
   match p.cur_token with
   | IDENT i -> Ok (p, Identifier (parse_identifier i))
   | INT i -> Ok (p, parse_integer_literal @@ int_of_string i)
@@ -245,7 +252,7 @@ and prefix_fn (p : parser) =
 
 (* parser -> (expression -> (parser * expression, parser) result) *)
 and infix_fn (p : parser) =
- (*  Printf.printf "ENTERED INFIX FN\n"; *)
+  (* Printf.printf "ENTERED INFIX FN\n"; *)
   match p.cur_token with
   | PLUS -> parse_infix_expression p
   | MINUS -> parse_infix_expression p
@@ -260,7 +267,7 @@ and infix_fn (p : parser) =
 
 (* parser -> prec -> expression ->  *)
 and order_by_prec (p : parser) (prec : prec) (left : expression) =
- (*  Printf.printf "ENTERED ORDERED BY PREC\n"; *)
+  (* Printf.printf "ENTERED ORDERED BY PREC\n"; *)
   if (p.peek_token != SEMICOLON) && (prec < (prec_of_token p.peek_token)) then
     begin match (infix_fn (next_token p) left) with
     | Ok (p, left) -> order_by_prec p prec left
@@ -270,6 +277,6 @@ and order_by_prec (p : parser) (prec : prec) (left : expression) =
 
 (* parser -> (parser * expression, parser) result *)
 and parse_expression (prec : prec) (p : parser) =
- (*  Printf.printf "ENTERED PARSE EXPRESSION\n"; *)
+  (* Printf.printf "ENTERED PARSE EXPRESSION\n"; *)
   Result.bind (prefix_fn p)
   @@ fun (p, left) -> order_by_prec p prec left

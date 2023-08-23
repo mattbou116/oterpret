@@ -16,8 +16,8 @@ let compare_ast (expected : Ast.ast) (got : Ast.ast) =
       if compare_ident n1 n2 then compare_expr v1 v2 else false
     | Return e1, Return e2 -> compare_expr e1 e2
     | Block sl1, Block sl2 -> compare_list compare_stmt sl1 sl2
-    | ExpressionStatement e1, ExpressionStatement e2 ->
-      if compare_expr e1 e2 then true else false
+    | ExpressionStatement e1, ExpressionStatement e2 -> compare_expr e1 e2 
+    | NoStatement, NoStatement -> true
     | _ -> false
   and compare_expr e g : bool =
     match e, g with
@@ -881,6 +881,215 @@ let test_call_op_precedence _ =
     failwith " are not equal!"
 ;;
 
+let test_if_expression _ =
+  let input = "if (x < y) { x }" in
+  let expected : ast =
+    { statements =
+      [ ExpressionStatement
+        (If 
+          { condition =
+            (Infix 
+              { left = Identifier { ident = "x" }
+              ; operator = LT
+              ; right = Identifier { ident = "y" }
+              })
+            ; consequence = 
+              Block ([
+                ExpressionStatement (Identifier { ident = "x" })
+              ])
+            ; alternative = NoStatement
+          })
+      ]
+    } in
+  let lexer = Lexer.init input in
+  let parser = Parser.init lexer in
+  let got = Parser.parse parser in
+  match compare_ast expected got with
+  | true -> ()
+  | false ->
+    Printf.printf "\n----- IF EXPR NO ELSE -----\n";
+    Printf.printf "\n----- INPUT ----- \n%s" input;
+    Printf.printf "\nEXPECTED AST\n";
+    pp_ast expected;
+    Printf.printf "\nGOT AST\n";
+    pp_ast got;
+    failwith " are not equal!"
+;;
+
+let test_if_else_expression _ =
+  let input = "if (x < y) { x } else { y }" in
+  let expected : ast =
+    { statements =
+      [ ExpressionStatement
+        (If 
+          { condition =
+            (Infix 
+              { left = Identifier { ident = "x" }
+              ; operator = LT
+              ; right = Identifier { ident = "y" }
+              })
+            ; consequence = 
+              Block ([ExpressionStatement (Identifier { ident = "x" })])
+            ; alternative = 
+              Block ([ExpressionStatement (Identifier { ident = "y" })])
+          })
+      ]
+    } in
+  let lexer = Lexer.init input in
+  let parser = Parser.init lexer in
+  let got = Parser.parse parser in
+  match compare_ast expected got with
+  | true -> ()
+  | false ->
+    Printf.printf "\n----- IF ELSE EXPR -----\n";
+    Printf.printf "\n----- INPUT ----- \n%s" input;
+    Printf.printf "\nEXPECTED AST\n";
+    pp_ast expected;
+    Printf.printf "\nGOT AST\n";
+    pp_ast got;
+    failwith " are not equal!"
+;;
+
+let test_function_literal _ =
+  let input = "fn(x, y) { x + y; }\n" in
+  let expected : ast =
+    { statements =
+      [ ExpressionStatement
+        (FunctionLiteral
+          { parameters =
+            [ { ident = "x" }; { ident = "y" } ]
+          ; body = 
+            Block ([ExpressionStatement (
+              Infix (
+                { left = Identifier { ident = "x" }
+                ; operator = PLUS
+                ; right = Identifier { ident = "y" }
+                })
+            )])
+          })
+      ]
+    } in
+  let lexer = Lexer.init input in
+  let parser = Parser.init lexer in
+  let got = Parser.parse parser in
+  match compare_ast expected got with
+  | true -> ()
+  | false ->
+    Printf.printf "\n----- IF ELSE EXPR -----\n";
+    Printf.printf "\n----- INPUT ----- \n%s" input;
+    Printf.printf "\nEXPECTED AST\n";
+    pp_ast expected;
+    Printf.printf "\nGOT AST\n";
+    pp_ast got;
+    failwith " are not equal!"
+;;
+
+let test_function_parameter _ =
+  let input =
+    "fn() {};
+    fn(x) {};
+    fn (x, y, z) {};" in
+  let expected : ast =
+    { statements =
+      [ ExpressionStatement
+        (FunctionLiteral
+          { parameters = []
+          ; body = Block ([NoStatement])
+          })
+      ; ExpressionStatement
+          (FunctionLiteral
+            { parameters = [ { ident = "x" } ]
+            ; body = Block ([NoStatement])
+            })
+      ; ExpressionStatement
+          (FunctionLiteral
+            { parameters = [ { ident = "x" }; { ident = "y" }; { ident = "z" } ]
+            ; body = Block ([NoStatement])
+            })
+      ]
+    }
+  in
+  let lexer = Lexer.init input in
+  let parser = Parser.init lexer in
+  let got = Parser.parse parser in
+  match compare_ast expected got with
+  | true -> ()
+  | false ->
+    Printf.printf "\n----- FUNCTION PARAM PARSING -----\n";
+    Printf.printf "\n----- INPUT ----- \n%s" input;
+    Printf.printf "\nEXPECTED AST\n";
+    pp_ast expected;
+    Printf.printf "\nGOT AST\n";
+    pp_ast got;
+    failwith " are not equal!"
+;;
+
+let test_call_expression _ =
+  let input = "add(1, 2 * 3, 4 + 5)" in
+  let expected : ast =
+    { statements =
+      [ ExpressionStatement
+        (Call
+          { callee = Identifier ( { ident = "add" } )
+          ; arguments =
+            [ IntegerLiteral { value = 1 }
+            ; Infix 
+                { left = IntegerLiteral { value = 2 }
+                ; operator = ASTERISK
+                ; right = IntegerLiteral { value = 3 }
+                }
+            ; Infix 
+                { left = IntegerLiteral { value = 4 }
+                ; operator = PLUS
+                ; right = IntegerLiteral { value = 5 }
+                }
+            ]
+          })
+      ]
+    }
+  in
+  let lexer = Lexer.init input in
+  let parser = Parser.init lexer in
+  let got = Parser.parse parser in
+  match compare_ast expected got with
+  | true -> ()
+  | false ->
+    Printf.printf "\n----- FUNCTION PARAM PARSING -----\n";
+    Printf.printf "\n----- INPUT ----- \n%s" input;
+    Printf.printf "\nEXPECTED AST\n";
+    pp_ast expected;
+    Printf.printf "\nGOT AST\n";
+    pp_ast got;
+    failwith " are not equal!"
+;;
+
+let test_call_expression _ =
+  let input = "add()" in
+  let expected : ast =
+    { statements =
+      [ ExpressionStatement
+        (Call
+          { callee = Identifier ( { ident = "add" } )
+          ; arguments = []
+          })
+      ]
+    }
+  in
+  let lexer = Lexer.init input in
+  let parser = Parser.init lexer in
+  let got = Parser.parse parser in
+  match compare_ast expected got with
+  | true -> ()
+  | false ->
+    Printf.printf "\n----- CALL EXPRESSION -----\n";
+    Printf.printf "\n----- INPUT ----- \n%s" input;
+    Printf.printf "\nEXPECTED AST\n";
+    pp_ast expected;
+    Printf.printf "\nGOT AST\n";
+    pp_ast got;
+    failwith " are not equal!"
+;;
+
 let suite =
   "parser"
   >::: [ "test_single_let_statement" >:: test_single_let_statement
@@ -895,6 +1104,12 @@ let suite =
        ; "test_single_expr_op_precedence" >:: test_single_expr_op_precedence
        ; "test_multi_expr_op_precedence" >:: test_multi_expr_op_precedence
        ; "test_call_op_precedence" >:: test_call_op_precedence
+       ; "test_if_expression" >:: test_if_expression
+       ; "test_if_else_expression" >:: test_if_else_expression
+       ; "test_function_literal" >:: test_function_literal
+       ; "test_function_parameter" >:: test_function_parameter
+       ; "test_call_expression" >:: test_call_expression
+       ; "test_call_expression" >:: test_call_expression
        ]
 ;;
 
