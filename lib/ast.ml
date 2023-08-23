@@ -19,15 +19,15 @@ and identifier = { ident : string }
 and expression =
   | IntegerLiteral of { value : int }
   | BooleanLiteral of { value : bool }
+  | FunctionLiteral of
+      { parameters : identifier list
+      ; body : statement
+      }
   | Identifier of identifier
   | If of
       { condition : expression
       ; consequence : statement
       ; alternative : statement
-      }
-  | FunctionLiteral of
-      { parameters : identifier list
-      ; body : statement
       }
   | Prefix of
       { operator : token
@@ -37,6 +37,10 @@ and expression =
       { left : expression
       ; operator : token
       ; right : expression
+      }
+  | Call of 
+      { callee : expression
+      ; arguments : expression list
       }
 [@@deriving show];;
 
