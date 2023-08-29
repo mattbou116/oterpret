@@ -12,13 +12,15 @@ let collect_tokens (l : lexer) : token list =
   List.rev (aux l [])
 ;;
 
-let rec print_tokens (tl : token list) =
-  match tl with
-  | [] -> ()
-  | t :: tl ->
-    Printf.printf "token:%s\n" (string_of_token t);
-    print_tokens tl
-;;
+(*
+   let rec print_tokens (tl : token list) =
+   match tl with
+   | [] -> ()
+   | t :: tl ->
+   Printf.printf "token:%s\n" (string_of_token t);
+   print_tokens tl
+   ;;
+*)
 
 let compare_tokens (expected : token list) (got : token list) : int =
   let comparison t1 t2 =

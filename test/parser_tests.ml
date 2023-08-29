@@ -16,7 +16,7 @@ let compare_ast (expected : Ast.ast) (got : Ast.ast) =
       if compare_ident n1 n2 then compare_expr v1 v2 else false
     | Return e1, Return e2 -> compare_expr e1 e2
     | Block sl1, Block sl2 -> compare_list compare_stmt sl1 sl2
-    | ExpressionStatement e1, ExpressionStatement e2 -> compare_expr e1 e2 
+    | ExpressionStatement e1, ExpressionStatement e2 -> compare_expr e1 e2
     | NoStatement, NoStatement -> true
     | _ -> false
   and compare_expr e g : bool =
@@ -39,10 +39,9 @@ let compare_ast (expected : Ast.ast) (got : Ast.ast) =
       if o1 = o2
       then if compare_expr l1 l2 then compare_expr r1 r2 else false
       else false
-    | Call { callee = c1; arguments = el1 }, 
-      Call { callee = c2; arguments = el2 } ->
-        if compare_expr c1 c2 then compare_list compare_expr el1 el2
-        else false
+    | ( Call { callee = c1; arguments = el1 }
+      , Call { callee = c2; arguments = el2 } ) ->
+      if compare_expr c1 c2 then compare_list compare_expr el1 el2 else false
     | _ -> false
   and compare_ident e g : bool =
     match e, g with
@@ -450,7 +449,8 @@ let test_single_expr_op_precedence _ =
                ; right = Identifier { ident = "b" }
                })
         ]
-    } in
+    }
+  in
   let lexer = Lexer.init input in
   let parser = Parser.init lexer in
   let got = Parser.parse parser in
@@ -588,170 +588,170 @@ let test_multi_expr_op_precedence _ =
                ; right = Identifier { ident = "f" }
                })
         ; ExpressionStatement
-          (Infix
-            { left = 
-              (Infix 
-                { left = IntegerLiteral { value = 5 }
-                ; operator = GT
-                ; right = IntegerLiteral { value = 4 }
-                })
-            ; operator = EQ
-            ; right =
-              (Infix 
-                { left = IntegerLiteral { value = 3 }
-                ; operator = LT
-                ; right = IntegerLiteral { value = 4 }
-                })
-            })
+            (Infix
+               { left =
+                   Infix
+                     { left = IntegerLiteral { value = 5 }
+                     ; operator = GT
+                     ; right = IntegerLiteral { value = 4 }
+                     }
+               ; operator = EQ
+               ; right =
+                   Infix
+                     { left = IntegerLiteral { value = 3 }
+                     ; operator = LT
+                     ; right = IntegerLiteral { value = 4 }
+                     }
+               })
         ; ExpressionStatement
-          (Infix
-            { left = 
-              (Infix 
-                { left = IntegerLiteral { value = 5 }
-                ; operator = LT
-                ; right = IntegerLiteral { value = 4 }
-                })
-            ; operator = NOT_EQ
-            ; right =
-              (Infix 
-                { left = IntegerLiteral { value = 3 }
-                ; operator = GT
-                ; right = IntegerLiteral { value = 4 }
-                })
-            })
+            (Infix
+               { left =
+                   Infix
+                     { left = IntegerLiteral { value = 5 }
+                     ; operator = LT
+                     ; right = IntegerLiteral { value = 4 }
+                     }
+               ; operator = NOT_EQ
+               ; right =
+                   Infix
+                     { left = IntegerLiteral { value = 3 }
+                     ; operator = GT
+                     ; right = IntegerLiteral { value = 4 }
+                     }
+               })
         ; ExpressionStatement
-          (Infix
-            { left = 
-              (Infix 
-                { left = IntegerLiteral { value = 3 }
-                ; operator = PLUS
-                ; right = 
-                  (Infix
-                    { left = IntegerLiteral { value = 4 }
-                    ; operator = ASTERISK
-                    ; right = IntegerLiteral { value = 5 }
-                    })
-                })
-            ; operator = EQ
-            ; right =
-              (Infix 
-                { left = 
-                  (Infix
-                    { left = IntegerLiteral { value = 3 }
-                    ; operator = ASTERISK
-                    ; right = IntegerLiteral { value = 1 }
-                    })
-                ; operator = PLUS
-                ; right = 
-                  (Infix
-                    { left = IntegerLiteral { value = 4 }
-                    ; operator = ASTERISK
-                    ; right = IntegerLiteral { value = 5 }
-                    })
-                })
-            })
+            (Infix
+               { left =
+                   Infix
+                     { left = IntegerLiteral { value = 3 }
+                     ; operator = PLUS
+                     ; right =
+                         Infix
+                           { left = IntegerLiteral { value = 4 }
+                           ; operator = ASTERISK
+                           ; right = IntegerLiteral { value = 5 }
+                           }
+                     }
+               ; operator = EQ
+               ; right =
+                   Infix
+                     { left =
+                         Infix
+                           { left = IntegerLiteral { value = 3 }
+                           ; operator = ASTERISK
+                           ; right = IntegerLiteral { value = 1 }
+                           }
+                     ; operator = PLUS
+                     ; right =
+                         Infix
+                           { left = IntegerLiteral { value = 4 }
+                           ; operator = ASTERISK
+                           ; right = IntegerLiteral { value = 5 }
+                           }
+                     }
+               })
         ; ExpressionStatement (BooleanLiteral { value = true })
         ; ExpressionStatement (BooleanLiteral { value = false })
         ; ExpressionStatement
-          (Infix
-            { left = 
-              (Infix 
-                { left = IntegerLiteral { value = 5 }
-                ; operator = GT
-                ; right = IntegerLiteral { value = 3 }
-                })
-              ; operator = EQ 
-            ; right = BooleanLiteral { value = false }
-            })
+            (Infix
+               { left =
+                   Infix
+                     { left = IntegerLiteral { value = 5 }
+                     ; operator = GT
+                     ; right = IntegerLiteral { value = 3 }
+                     }
+               ; operator = EQ
+               ; right = BooleanLiteral { value = false }
+               })
         ; ExpressionStatement
-          (Infix
-            { left = 
-              (Infix 
-                { left = IntegerLiteral { value = 3 }
-                ; operator = LT
-                ; right = IntegerLiteral { value = 5 }
-                })
-              ; operator = EQ 
-            ; right = BooleanLiteral { value = true }
-            })
+            (Infix
+               { left =
+                   Infix
+                     { left = IntegerLiteral { value = 3 }
+                     ; operator = LT
+                     ; right = IntegerLiteral { value = 5 }
+                     }
+               ; operator = EQ
+               ; right = BooleanLiteral { value = true }
+               })
         ; ExpressionStatement
-          (Infix
-            { left = 
-              (Infix
-                { left = IntegerLiteral { value = 1 }
-                ; operator = PLUS
-                ; right = 
-                  (Infix
-                    { left = IntegerLiteral { value = 2 }
-                    ; operator = PLUS
-                    ; right = IntegerLiteral { value = 3 }
-                    })
-                })
-              ; operator = PLUS
-              ; right = IntegerLiteral { value = 4 }
-            })
+            (Infix
+               { left =
+                   Infix
+                     { left = IntegerLiteral { value = 1 }
+                     ; operator = PLUS
+                     ; right =
+                         Infix
+                           { left = IntegerLiteral { value = 2 }
+                           ; operator = PLUS
+                           ; right = IntegerLiteral { value = 3 }
+                           }
+                     }
+               ; operator = PLUS
+               ; right = IntegerLiteral { value = 4 }
+               })
         ; ExpressionStatement
-          (Infix
-            { left = 
-              (Infix
-                { left = IntegerLiteral { value = 5 }
-                ; operator = PLUS
-                ; right = IntegerLiteral { value = 5 }
-                })
-            ; operator = ASTERISK
-            ; right = IntegerLiteral { value = 2 }
-            })
-        ; ExpressionStatement
-          (Infix
-            { left = IntegerLiteral { value = 2 }
-            ; operator = SLASH
-            ; right =
-              (Infix
-                { left = IntegerLiteral { value = 5 }
-                ; operator = PLUS
-                ; right = IntegerLiteral { value = 5 }
-                })
-            })
-        ; ExpressionStatement
-          (Infix
-            { left = 
-              (Infix
-                { left = 
-                  (Infix
-                    { left = IntegerLiteral { value = 5 }
-                    ; operator = PLUS
-                    ; right = IntegerLiteral { value = 5 }
-                    })
-                  ; operator = ASTERISK
-                  ; right = IntegerLiteral { value = 2 }
-                })
-            ; operator = ASTERISK
-            ; right =
-              (Infix
-                  { left = IntegerLiteral { value = 5 }
-                  ; operator = PLUS
-                  ; right = IntegerLiteral { value = 5 }
-                  })
-            })
-        ; ExpressionStatement
-            (Prefix 
-              { operator = MINUS
-              ; right =
-                   (Infix
+            (Infix
+               { left =
+                   Infix
                      { left = IntegerLiteral { value = 5 }
                      ; operator = PLUS
                      ; right = IntegerLiteral { value = 5 }
-                     })
+                     }
+               ; operator = ASTERISK
+               ; right = IntegerLiteral { value = 2 }
                })
         ; ExpressionStatement
-            (Prefix 
-              { operator = BANG
-              ; right =
-                   (Infix
+            (Infix
+               { left = IntegerLiteral { value = 2 }
+               ; operator = SLASH
+               ; right =
+                   Infix
+                     { left = IntegerLiteral { value = 5 }
+                     ; operator = PLUS
+                     ; right = IntegerLiteral { value = 5 }
+                     }
+               })
+        ; ExpressionStatement
+            (Infix
+               { left =
+                   Infix
+                     { left =
+                         Infix
+                           { left = IntegerLiteral { value = 5 }
+                           ; operator = PLUS
+                           ; right = IntegerLiteral { value = 5 }
+                           }
+                     ; operator = ASTERISK
+                     ; right = IntegerLiteral { value = 2 }
+                     }
+               ; operator = ASTERISK
+               ; right =
+                   Infix
+                     { left = IntegerLiteral { value = 5 }
+                     ; operator = PLUS
+                     ; right = IntegerLiteral { value = 5 }
+                     }
+               })
+        ; ExpressionStatement
+            (Prefix
+               { operator = MINUS
+               ; right =
+                   Infix
+                     { left = IntegerLiteral { value = 5 }
+                     ; operator = PLUS
+                     ; right = IntegerLiteral { value = 5 }
+                     }
+               })
+        ; ExpressionStatement
+            (Prefix
+               { operator = BANG
+               ; right =
+                   Infix
                      { left = BooleanLiteral { value = true }
                      ; operator = EQ
                      ; right = BooleanLiteral { value = true }
-                     })
+                     }
                })
         ]
     }
@@ -772,97 +772,101 @@ let test_multi_expr_op_precedence _ =
 ;;
 
 (*
-			"add((((a + b) + ((c * d) / f)) + g))",
+   "add((((a + b) + ((c * d) / f)) + g))",
 *)
 
-let test_call_op_precedence _ = 
-  let input = "\n\
-    \  a + add(b * c) + d;\n\ 
-    \  add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8));\n\
+let test_call_op_precedence _ =
+  let input =
+    "\n\
+    \  a + add(b * c) + d;\n\
+    \ \n\
+    \      add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8));\n\
     \  add(a + b + c * d / f + g);\n"
   in
   let expected =
     { statements =
         [ ExpressionStatement
-          (Infix
-            { left = 
-              (Infix
-                { left = Identifier { ident = "a" }
-                ; operator = PLUS
-                ; right = 
-                  (Call
-                    { callee = Identifier { ident = "add" }
-                    ; arguments =
-                      [
-                        (Infix 
-                          { left = Identifier { ident = "b" }
-                          ; operator = ASTERISK
-                          ; right = Identifier { ident = "c" }
-                          })
-                      ]})
-                })
-              ; operator = PLUS
-              ; right = Identifier { ident = "d" }
-            })
+            (Infix
+               { left =
+                   Infix
+                     { left = Identifier { ident = "a" }
+                     ; operator = PLUS
+                     ; right =
+                         Call
+                           { callee = Identifier { ident = "add" }
+                           ; arguments =
+                               [ Infix
+                                   { left = Identifier { ident = "b" }
+                                   ; operator = ASTERISK
+                                   ; right = Identifier { ident = "c" }
+                                   }
+                               ]
+                           }
+                     }
+               ; operator = PLUS
+               ; right = Identifier { ident = "d" }
+               })
         ; ExpressionStatement
-          (Call
-            { callee = Identifier { ident = "add" }
-            ; arguments =
-              [ Identifier { ident = "a" }
-              ; Identifier { ident = "b" }
-              ; IntegerLiteral { value = 1 }
-              ; (Infix 
-                  { left = IntegerLiteral { value = 2 }
-                  ; operator = ASTERISK
-                  ; right = IntegerLiteral { value = 3 }
-                  })
-              ; (Infix 
-                  { left = IntegerLiteral { value = 4 }
-                  ; operator = PLUS
-                  ; right = IntegerLiteral { value = 5 }
-                  })
-              ; (Call
-                { callee = Identifier { ident = "add" }
-                ; arguments =
-                  [ IntegerLiteral { value = 6 }
-                  ; (Infix
-                    { left = IntegerLiteral { value = 7 }
-                    ; operator = ASTERISK
-                    ; right = IntegerLiteral { value = 8 }
-                    })
-                  ]})
-              ]
-            })
+            (Call
+               { callee = Identifier { ident = "add" }
+               ; arguments =
+                   [ Identifier { ident = "a" }
+                   ; Identifier { ident = "b" }
+                   ; IntegerLiteral { value = 1 }
+                   ; Infix
+                       { left = IntegerLiteral { value = 2 }
+                       ; operator = ASTERISK
+                       ; right = IntegerLiteral { value = 3 }
+                       }
+                   ; Infix
+                       { left = IntegerLiteral { value = 4 }
+                       ; operator = PLUS
+                       ; right = IntegerLiteral { value = 5 }
+                       }
+                   ; Call
+                       { callee = Identifier { ident = "add" }
+                       ; arguments =
+                           [ IntegerLiteral { value = 6 }
+                           ; Infix
+                               { left = IntegerLiteral { value = 7 }
+                               ; operator = ASTERISK
+                               ; right = IntegerLiteral { value = 8 }
+                               }
+                           ]
+                       }
+                   ]
+               })
         ; ExpressionStatement
-          (Call
-            { callee = Identifier { ident = "add" }
-            ; arguments =
-              [ (Infix 
-                  { left = 
-                    (Infix 
-                      { left = 
-                        (Infix
-                          { left = Identifier { ident = "a" }
-                          ; operator = PLUS
-                          ; right = Identifier { ident = "b" }
-                          })
-                      ; operator = PLUS
-                      ; right =
-                        (Infix
-                          { left = 
-                            (Infix
-                              { left = Identifier { ident = "c" }
-                              ; operator = ASTERISK
-                              ; right = Identifier { ident = "d" }
-                              })
-                          ; operator = SLASH
-                          ; right = Identifier { ident = "f" }
-                          })
-                      })
-                  ; operator = PLUS
-                  ; right = Identifier { ident = "g" }
-                  })
-              ]})
+            (Call
+               { callee = Identifier { ident = "add" }
+               ; arguments =
+                   [ Infix
+                       { left =
+                           Infix
+                             { left =
+                                 Infix
+                                   { left = Identifier { ident = "a" }
+                                   ; operator = PLUS
+                                   ; right = Identifier { ident = "b" }
+                                   }
+                             ; operator = PLUS
+                             ; right =
+                                 Infix
+                                   { left =
+                                       Infix
+                                         { left = Identifier { ident = "c" }
+                                         ; operator = ASTERISK
+                                         ; right = Identifier { ident = "d" }
+                                         }
+                                   ; operator = SLASH
+                                   ; right = Identifier { ident = "f" }
+                                   }
+                             }
+                       ; operator = PLUS
+                       ; right = Identifier { ident = "g" }
+                       }
+                   ]
+               })
         ]
     }
   in
@@ -885,22 +889,21 @@ let test_if_expression _ =
   let input = "if (x < y) { x }" in
   let expected : ast =
     { statements =
-      [ ExpressionStatement
-        (If 
-          { condition =
-            (Infix 
-              { left = Identifier { ident = "x" }
-              ; operator = LT
-              ; right = Identifier { ident = "y" }
-              })
-            ; consequence = 
-              Block ([
-                ExpressionStatement (Identifier { ident = "x" })
-              ])
-            ; alternative = NoStatement
-          })
-      ]
-    } in
+        [ ExpressionStatement
+            (If
+               { condition =
+                   Infix
+                     { left = Identifier { ident = "x" }
+                     ; operator = LT
+                     ; right = Identifier { ident = "y" }
+                     }
+               ; consequence =
+                   Block [ ExpressionStatement (Identifier { ident = "x" }) ]
+               ; alternative = NoStatement
+               })
+        ]
+    }
+  in
   let lexer = Lexer.init input in
   let parser = Parser.init lexer in
   let got = Parser.parse parser in
@@ -920,21 +923,22 @@ let test_if_else_expression _ =
   let input = "if (x < y) { x } else { y }" in
   let expected : ast =
     { statements =
-      [ ExpressionStatement
-        (If 
-          { condition =
-            (Infix 
-              { left = Identifier { ident = "x" }
-              ; operator = LT
-              ; right = Identifier { ident = "y" }
-              })
-            ; consequence = 
-              Block ([ExpressionStatement (Identifier { ident = "x" })])
-            ; alternative = 
-              Block ([ExpressionStatement (Identifier { ident = "y" })])
-          })
-      ]
-    } in
+        [ ExpressionStatement
+            (If
+               { condition =
+                   Infix
+                     { left = Identifier { ident = "x" }
+                     ; operator = LT
+                     ; right = Identifier { ident = "y" }
+                     }
+               ; consequence =
+                   Block [ ExpressionStatement (Identifier { ident = "x" }) ]
+               ; alternative =
+                   Block [ ExpressionStatement (Identifier { ident = "y" }) ]
+               })
+        ]
+    }
+  in
   let lexer = Lexer.init input in
   let parser = Parser.init lexer in
   let got = Parser.parse parser in
@@ -954,21 +958,22 @@ let test_function_literal _ =
   let input = "fn(x, y) { x + y; }\n" in
   let expected : ast =
     { statements =
-      [ ExpressionStatement
-        (FunctionLiteral
-          { parameters =
-            [ { ident = "x" }; { ident = "y" } ]
-          ; body = 
-            Block ([ExpressionStatement (
-              Infix (
-                { left = Identifier { ident = "x" }
-                ; operator = PLUS
-                ; right = Identifier { ident = "y" }
-                })
-            )])
-          })
-      ]
-    } in
+        [ ExpressionStatement
+            (FunctionLiteral
+               { parameters = [ { ident = "x" }; { ident = "y" } ]
+               ; body =
+                   Block
+                     [ ExpressionStatement
+                         (Infix
+                            { left = Identifier { ident = "x" }
+                            ; operator = PLUS
+                            ; right = Identifier { ident = "y" }
+                            })
+                     ]
+               })
+        ]
+    }
+  in
   let lexer = Lexer.init input in
   let parser = Parser.init lexer in
   let got = Parser.parse parser in
@@ -985,28 +990,23 @@ let test_function_literal _ =
 ;;
 
 let test_function_parameter _ =
-  let input =
-    "fn() {};
-    fn(x) {};
-    fn (x, y, z) {};" in
+  let input = "fn() {};\n    fn(x) {};\n    fn (x, y, z) {};" in
   let expected : ast =
     { statements =
-      [ ExpressionStatement
-        (FunctionLiteral
-          { parameters = []
-          ; body = Block ([NoStatement])
-          })
-      ; ExpressionStatement
-          (FunctionLiteral
-            { parameters = [ { ident = "x" } ]
-            ; body = Block ([NoStatement])
-            })
-      ; ExpressionStatement
-          (FunctionLiteral
-            { parameters = [ { ident = "x" }; { ident = "y" }; { ident = "z" } ]
-            ; body = Block ([NoStatement])
-            })
-      ]
+        [ ExpressionStatement
+            (FunctionLiteral { parameters = []; body = Block [ NoStatement ] })
+        ; ExpressionStatement
+            (FunctionLiteral
+               { parameters = [ { ident = "x" } ]
+               ; body = Block [ NoStatement ]
+               })
+        ; ExpressionStatement
+            (FunctionLiteral
+               { parameters =
+                   [ { ident = "x" }; { ident = "y" }; { ident = "z" } ]
+               ; body = Block [ NoStatement ]
+               })
+        ]
     }
   in
   let lexer = Lexer.init input in
@@ -1028,24 +1028,24 @@ let test_call_expression _ =
   let input = "add(1, 2 * 3, 4 + 5)" in
   let expected : ast =
     { statements =
-      [ ExpressionStatement
-        (Call
-          { callee = Identifier ( { ident = "add" } )
-          ; arguments =
-            [ IntegerLiteral { value = 1 }
-            ; Infix 
-                { left = IntegerLiteral { value = 2 }
-                ; operator = ASTERISK
-                ; right = IntegerLiteral { value = 3 }
-                }
-            ; Infix 
-                { left = IntegerLiteral { value = 4 }
-                ; operator = PLUS
-                ; right = IntegerLiteral { value = 5 }
-                }
-            ]
-          })
-      ]
+        [ ExpressionStatement
+            (Call
+               { callee = Identifier { ident = "add" }
+               ; arguments =
+                   [ IntegerLiteral { value = 1 }
+                   ; Infix
+                       { left = IntegerLiteral { value = 2 }
+                       ; operator = ASTERISK
+                       ; right = IntegerLiteral { value = 3 }
+                       }
+                   ; Infix
+                       { left = IntegerLiteral { value = 4 }
+                       ; operator = PLUS
+                       ; right = IntegerLiteral { value = 5 }
+                       }
+                   ]
+               })
+        ]
     }
   in
   let lexer = Lexer.init input in
@@ -1063,16 +1063,13 @@ let test_call_expression _ =
     failwith " are not equal!"
 ;;
 
-let test_call_expression _ =
+let test_call_no_args _ =
   let input = "add()" in
   let expected : ast =
     { statements =
-      [ ExpressionStatement
-        (Call
-          { callee = Identifier ( { ident = "add" } )
-          ; arguments = []
-          })
-      ]
+        [ ExpressionStatement
+            (Call { callee = Identifier { ident = "add" }; arguments = [] })
+        ]
     }
   in
   let lexer = Lexer.init input in
@@ -1109,7 +1106,7 @@ let suite =
        ; "test_function_literal" >:: test_function_literal
        ; "test_function_parameter" >:: test_function_parameter
        ; "test_call_expression" >:: test_call_expression
-       ; "test_call_expression" >:: test_call_expression
+       ; "test_call_no_args" >:: test_call_no_args
        ]
 ;;
 

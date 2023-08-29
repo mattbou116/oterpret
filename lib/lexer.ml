@@ -1,4 +1,3 @@
-
 type lexer =
   { input : string
   ; pos : int (* current position in input *)
@@ -47,16 +46,12 @@ let is_whitespace = function
 
 let rec read_identifier (l : lexer) (acc : string) : lexer * string =
   let l = read_char l in
-  if is_letter l.ch
-  then read_identifier l (acc ^ Char.escaped l.ch)
-  else l, acc
+  if is_letter l.ch then read_identifier l (acc ^ Char.escaped l.ch) else l, acc
 ;;
 
 let rec read_number (l : lexer) (acc : string) : lexer * string =
   let l = read_char l in
-  if is_digit l.ch
-  then read_number l (acc ^ Char.escaped l.ch)
-  else l, acc
+  if is_digit l.ch then read_number l (acc ^ Char.escaped l.ch) else l, acc
 ;;
 
 let rec skip_whitespace (l : lexer) : lexer =
@@ -68,6 +63,7 @@ let rec skip_whitespace (l : lexer) : lexer =
 ;;
 
 open Token
+
 let next_token l : lexer * token =
   let l = skip_whitespace l in
   match l.ch with
@@ -98,4 +94,3 @@ let next_token l : lexer * token =
     l, INT num
   | _ -> read_char l, ILLEGAL
 ;;
-

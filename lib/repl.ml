@@ -1,20 +1,29 @@
-module Repl = struct
-  let prompt = ">> "
+let prompt = ">> "
 
-  let start () =
-    let open Lexer in
-    let open Token in
-    Printf.printf "%s" prompt;
+let start () =
+  let open Lexer in
+  let open Token in
+  let open Ast in
+  let rec aux () =
+    output_string stdout prompt;
     let user_input = Stdlib.read_line () in
-    let rec aux (l : Lexer.lexer) =
-      let lexer, token = next_token l in
-      match token with
-      | EOF -> ()
-      | _ ->
-        Printf.printf "[%s]\n" (Token.string_of_token token);
-        aux lexer
-    in
     let lexer = Lexer.init user_input in
-    aux lexer
-  ;;
-end
+    let parser = Parser.init lexer in
+    let ast = Parser.parse parser in
+    pp_ast ast;
+    aux ()
+  in
+  aux ()
+;;
+
+let monkey = 
+"
+#     #                                   
+##   ##  ####  #    # #    # ###### #   # 
+# # # # #    # ##   # #   #  #       # #  
+#  #  # #    # # #  # ####   #####    #   
+#     # #    # #  # # #  #   #        #   
+#     # #    # #   ## #   #  #        #   
+#     #  ####  #    # #    # ######   #   
+"
+;;

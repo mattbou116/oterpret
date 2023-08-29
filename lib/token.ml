@@ -30,7 +30,7 @@ type token =
   | IF
   | ELSE
   | RETURN
-[@@deriving show];;
+[@@deriving show]
 
 let string_of_token = function
   | ILLEGAL -> "ILLEGAL"
@@ -77,3 +77,4 @@ let lookup_ident (ident : string) : token =
   | "false" -> FALSE
   | "return" -> RETURN
   | _ -> IDENT ident
+;;

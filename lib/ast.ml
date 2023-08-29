@@ -1,7 +1,6 @@
 open Token
 
-type ast = { statements : statement list } 
-[@@deriving show]
+type ast = { statements : statement list } [@@deriving show]
 
 and statement =
   | Let of
@@ -14,8 +13,7 @@ and statement =
   | NoStatement
 [@@deriving show]
 
-and identifier = { ident : string }
-[@@deriving show]
+and identifier = { ident : string } [@@deriving show]
 
 and expression =
   | IntegerLiteral of { value : int }
@@ -39,11 +37,13 @@ and expression =
       ; operator : token
       ; right : expression
       }
-  | Call of 
+  | Call of
       { callee : expression
       ; arguments : expression list
       }
-[@@deriving show];;
+[@@deriving show]
 
-let pp_ast (ast : ast) = 
-  List.iter (fun x -> Format.printf "%a@\n" pp_statement x) ast.statements
+(* %! is flushing the output buffer *)
+let pp_ast (ast : ast) =
+  List.iter (fun x -> Format.printf "%a@\n%!" pp_statement x) ast.statements
+;;
