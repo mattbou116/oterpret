@@ -5,3 +5,6 @@ _build/default/test/lexer_tests.exe
 
 echo -e "\nTesting Parser"
 _build/default/test/parser_tests.exe
+
+echo -e "\nTesting Evaluation"
+_build/default/test/eval_tests.exe
