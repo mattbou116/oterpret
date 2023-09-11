@@ -1,4 +1,4 @@
 doc/*
 _build/
 *.opam
-lib/*.txt
+lib/txt/*

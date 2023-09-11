@@ -47,3 +47,13 @@ and expression =
 let pp_ast (ast : ast) =
   List.iter (fun x -> Format.printf "%a@\n%!" pp_statement x) ast.statements
 ;;
+
+let string_of_idents (il : identifier list) : string =
+  let sl = List.map (fun x -> Format.asprintf "%a@\n%!" pp_identifier x) il in
+  List.fold_left (fun acc x -> acc ^ x) "" sl
+;;
+
+let string_of_ast (ast : ast) =
+  let astl = List.map (fun x -> Format.asprintf "%a@\n%!" pp_statement x) ast.statements in
+  List.fold_left (fun acc x -> acc ^ x) "" astl
+;;

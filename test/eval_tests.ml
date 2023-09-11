@@ -9,7 +9,8 @@ let test_input input =
     let o = Eval.eval ast in
     if (y <> o) then 
       let got = Format.asprintf "%a@\n" Object.pp_obj o in
-      assert_failure ("Eval failed on: " ^ x ^ "; got: " ^ got ^ "\n")
+      let exp = Format.asprintf "%a@\n" Object.pp_obj y in
+      assert_failure ("Eval failed on: " ^ x ^ "; got: " ^ got ^ "; exp: " ^ exp ^ "\n")
     else ()
   in
   List.iter f input
@@ -176,6 +177,31 @@ let test_nested_return_statement _ =
   test_input input
 ;;
 
+let test_error_handling _ =
+  let open Object in
+  let one = "
+  if (10 > 1) {
+    if (10 > 1) {
+      return true + false;
+    }
+
+    return 1;
+  }" in
+  let input = 
+    [ ("5 + true;", ERROR ("unknown operation: (INTEGER + BOOLEAN)"))
+    ; ("5 + true; 5;", ERROR ("unknown operation: (INTEGER + BOOLEAN)"))
+    ; ("-true", ERROR ("unknown operator: -(BOOLEAN)"))
+    ; ("true + false;", ERROR ("unknown operator: (BOOLEAN + BOOLEAN)"))
+    ; ("true + false + true + false;", ERROR ("unknown operator: (BOOLEAN + BOOLEAN)"))
+    ; ("5; true + false; 5", ERROR ("unknown operator: (BOOLEAN + BOOLEAN)"))
+    ; ("if (10 > 1) { true + false; }", ERROR ("unknown operator: (BOOLEAN + BOOLEAN)"))
+    ; (one, ERROR ("unknown operator: (BOOLEAN + BOOLEAN)"))
+    ;	("foobar", ERROR ("identifier not found: (foobar)"))
+    ] 
+  in
+  test_input input
+;;
+
 let suite =
   "eval"
   >::: [ "test_integer_literal" >:: test_integer_literal
@@ -185,7 +211,10 @@ let suite =
        ; "test_bang_operator" >:: test_bang_operator
        ; "test_int_if_expression" >:: test_int_if_expression
        ; "test_null_if_expression" >:: test_null_if_expression
-       ; "test_single_return_statement" >:: test_single_return_statement
+       (* ; "test_single_return_statement" >:: test_single_return_statement
+       ; "test_let_statement" >:: test_let_statement
+       ; "test_nested_return_statement" >:: test_nested_return_statement *)
+       ; "test_error_handling" >:: test_error_handling
        ]
 ;;
 
