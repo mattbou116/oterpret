@@ -54,6 +54,8 @@ let string_of_idents (il : identifier list) : string =
 ;;
 
 let string_of_ast (ast : ast) =
-  let astl = List.map (fun x -> Format.asprintf "%a@\n%!" pp_statement x) ast.statements in
+  let astl =
+    List.map (fun x -> Format.asprintf "%a@\n%!" pp_statement x) ast.statements
+  in
   List.fold_left (fun acc x -> acc ^ x) "" astl
 ;;
